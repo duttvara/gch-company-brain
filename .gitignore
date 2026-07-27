@@ -1,0 +1,22 @@
+.DS_Store
+
+# secrets
+.env
+.env.local
+**/.env
+**/.env.local
+
+# local/cache output
+__pycache__/
+**/__pycache__/
+*.pyc
+node_modules/
+**/node_modules/
+.vercel/
+**/.vercel/
+
+# copyright / large local source material
+gch-brain-starter/pdfs/
+
+# generated artifacts
+outputs/

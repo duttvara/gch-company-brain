@@ -1,0 +1,8 @@
+apify-client
+openai
+supabase
+python-dotenv
+pypdf
+ebooklib
+beautifulsoup4
+stripe

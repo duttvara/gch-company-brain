@@ -1,0 +1,7 @@
+# never commit secrets or books
+.env
+__pycache__/
+*.pyc
+
+# don't commit the book PDFs/EPUBs (copyright + size); they're ingested locally
+pdfs/

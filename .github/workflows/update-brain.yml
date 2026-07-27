@@ -1,0 +1,36 @@
+name: Update the Company Brain
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"      # every Monday at 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    defaults:
+      run:
+        working-directory: gch-brain-starter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ingest Reddit consumer voice
+        run: python ingest.py
+
+      - name: Ingest research
+        run: python ingest_research.py
+
+      - name: Ingest competitor and EAP sites
+        run: python ingest_web.py

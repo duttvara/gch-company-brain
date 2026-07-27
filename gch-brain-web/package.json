@@ -1,0 +1,13 @@
+{
+  "name": "gch-brain-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "openai": "^4.68.4"
+  }
+}

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Greater Change Health · Company Brain</title>
+<style>
+  :root{
+    --brand:#1f6f5c; --brand2:#2c9c82; --ink:#1b2330; --muted:#5c6676;
+    --line:#e6eaf0; --soft:#f4f9f7; --bg:#f7faf9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Helvetica Neue',Arial,sans-serif; color:var(--ink);
+    background:var(--bg); min-height:100vh;
+  }
+  .top{
+    background:linear-gradient(150deg,#1f6f5c,#2c9c82); color:#fff;
+    padding:26px 20px 22px;
+  }
+  .top .wrap{max-width:760px; margin:0 auto;}
+  .top h1{margin:0; font-size:22px;}
+  .top p{margin:6px 0 0; opacity:.9; font-size:14px;}
+  .wrap{max-width:760px; margin:0 auto; padding:20px;}
+  .askbar{display:flex; gap:8px; margin-top:-26px;}
+  .askbar input{
+    flex:1; padding:15px 16px; border:1px solid var(--line); border-radius:12px;
+    font-size:15px; background:#fff; box-shadow:0 6px 24px rgba(20,40,35,.08); outline:none;
+  }
+  .askbar input:focus{border-color:var(--brand2);}
+  .askbar button{
+    padding:0 22px; border:none; border-radius:12px; background:var(--brand);
+    color:#fff; font-size:15px; font-weight:600; cursor:pointer; box-shadow:0 6px 24px rgba(20,40,35,.12);
+  }
+  .askbar button:disabled{opacity:.6; cursor:default;}
+  .modes{margin:16px 0 2px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .mode{
+    background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 16px;
+    font-size:13px; color:var(--muted); cursor:pointer; font-weight:600;
+  }
+  .mode.active{background:var(--brand); color:#fff; border-color:var(--brand);}
+  .modes-label{font-size:12px; color:var(--muted); align-self:center; margin-right:2px;}
+  .chips{margin:14px 0 4px; display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    background:#fff; border:1px solid var(--line); border-radius:20px; padding:7px 13px;
+    font-size:12.5px; color:var(--muted); cursor:pointer;
+  }
+  .chip:hover{border-color:var(--brand2); color:var(--brand);}
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px;
+    margin-top:16px; box-shadow:0 2px 10px rgba(20,40,35,.04); display:none;
+  }
+  .card h3{margin:0 0 8px; font-size:13px; letter-spacing:.5px; text-transform:uppercase; color:var(--brand);}
+  #answer{white-space:pre-wrap; line-height:1.6; font-size:15px;}
+  .sources{margin-top:14px; border-top:1px solid var(--line); padding-top:12px;}
+  .sources a{display:block; color:#0f4d6e; text-decoration:none; font-size:12.5px; padding:3px 0; word-break:break-all;}
+  .sources a:hover{text-decoration:underline;}
+  .sub{color:var(--muted); font-weight:600; margin-right:6px;}
+  .loading{display:none; margin-top:16px; color:var(--muted); font-size:14px;}
+  .dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--brand2); margin-right:3px; animation:b 1s infinite;}
+  .dot:nth-child(2){animation-delay:.2s;} .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes b{0%,100%{opacity:.3;}50%{opacity:1;}}
+  .err{color:#a3283a;}
+  .foot{color:var(--muted); font-size:12px; text-align:center; margin:26px 0;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="wrap" style="padding:0;">
+      <h1>GCH Company Brain</h1>
+      <p>Ask what real people say about therapy. Every answer is backed by sources.</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="askbar">
+      <input id="q" placeholder="e.g. what problems do people have with therapy?" autocomplete="off" />
+      <button id="go">Ask</button>
+    </div>
+
+    <div class="modes" id="modes">
+      <span class="modes-label">Answer from:</span>
+      <button class="mode active" data-source="both">All</button>
+      <button class="mode" data-source="consumer">Consumer voice</button>
+      <button class="mode" data-source="research">Research</button>
+      <button class="mode" data-source="books">Therapy books</button>
+      <button class="mode" data-source="b2b">Competitors &amp; EAP</button>
+      <button class="mode" data-source="kpis">Business KPIs (locked)</button>
+    </div>
+
+    <div class="chips" id="chips">
+      <span class="chip">What do people say about the cost of therapy?</span>
+      <span class="chip">What do people want from a therapist?</span>
+      <span class="chip">What problems do people face with therapy?</span>
+      <span class="chip">How do people feel about online vs in-person therapy?</span>
+    </div>
+
+    <div class="loading" id="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> thinking...</div>
+
+    <div class="card" id="answerCard">
+      <h3>Answer</h3>
+      <div id="answer"></div>
+      <div class="sources" id="sources"></div>
+    </div>
+  </div>
+
+  <div class="foot">Greater Change Health</div>
+
+<script>
+  const q = document.getElementById('q');
+  const go = document.getElementById('go');
+  const loading = document.getElementById('loading');
+  const card = document.getElementById('answerCard');
+  const answerEl = document.getElementById('answer');
+  const sourcesEl = document.getElementById('sources');
+  const chips = document.getElementById('chips');
+
+  const suggestionsBySource = {
+    both: [
+      'What are the biggest unmet needs in therapy right now?',
+      'What do people say makes therapy feel worth it?',
+      'What patterns show up across consumers, research, books, and competitors?',
+      'What should GCH focus on next based on all sources?'
+    ],
+    consumer: [
+      'What do people say about the cost of therapy?',
+      'What do people want from a therapist?',
+      'What problems do people face with therapy?',
+      'How do people feel about online vs in-person therapy?'
+    ],
+    research: [
+      'What research-backed therapy topics should we turn into social posts?',
+      'What are the most shareable mental health insights from the research?',
+      'What myths about therapy can we correct with evidence?',
+      'What research findings would make strong Instagram or LinkedIn content?'
+    ],
+    books: [
+      'Turn Atlas of the Heart into 5 original GCH carousel ideas with hooks.',
+      'Give me 10 non-generic Reel hooks from the therapy books for GCH.',
+      'What book-backed content angles would make GCH feel more human and premium?',
+      'Create a weekly social content plan using Atlas of the Heart, Feeling Good, and The Gift of Therapy.'
+    ],
+    b2b: [
+      'What are competitors and EAPs offering that GCH should notice?',
+      'How can GCH win against competitor therapy or EAP options?',
+      'What gaps do competitors leave open for GCH?',
+      'What messaging would help GCH stand out to employers?'
+    ],
+    kpis: [
+      'What does churn look like and what should we do about it?',
+      'What financial metrics should leadership focus on this month?',
+      'How can we improve MRR, ARR, and retention?',
+      'What are the biggest business risks in the KPI data?'
+    ]
+  };
+
+  function renderSuggestions(source){
+    chips.innerHTML = '';
+    (suggestionsBySource[source] || suggestionsBySource.both).forEach(function(text){
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = text;
+      chips.appendChild(chip);
+    });
+  }
+
+  function escapeHtml(text){
+    return String(text || '').replace(/[&<>"']/g, function(ch){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch];
+    });
+  }
+
+  function formatAnswer(text){
+    let html = escapeHtml(text);
+    html = html.replace(/^#{1,6}\s+/gm, '');
+    html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+
+  let currentSource = 'both';
+  let kpiPasscode = '';
+  renderSuggestions(currentSource);
+  document.getElementById('modes').addEventListener('click', function(e){
+    if(e.target.classList.contains('mode')){
+      currentSource = e.target.getAttribute('data-source');
+      document.querySelectorAll('.mode').forEach(function(m){ m.classList.remove('active'); });
+      e.target.classList.add('active');
+      renderSuggestions(currentSource);
+    }
+  });
+
+  async function ask(question){
+    if(!question || !question.trim()) return;
+    const body = { question, source: currentSource };
+    if(currentSource === 'kpis'){
+      if(!kpiPasscode){ kpiPasscode = prompt('Enter the finance passcode:') || ''; }
+      body.passcode = kpiPasscode;
+    }
+    go.disabled = true;
+    card.style.display = 'none';
+    loading.style.display = 'block';
+    try{
+      const r = await fetch('/api/ask', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const data = await r.json();
+      if(data.error && currentSource === 'kpis'){ kpiPasscode = ''; }  // wrong code, re-prompt next time
+      loading.style.display = 'none';
+      card.style.display = 'block';
+      if(data.error){
+        answerEl.innerHTML = '<span class="err">Error: '+data.error+'</span>';
+        sourcesEl.innerHTML = '';
+        return;
+      }
+      answerEl.innerHTML = formatAnswer(data.answer || '');
+      sourcesEl.innerHTML = (data.sources && data.sources.length)
+        ? '<h3>Sources</h3>' + data.sources.map(function(s, i){
+            const sub = s.subreddit ? '<span class="sub">['+(i+1)+'] r/'+s.subreddit+'</span>' : '<span class="sub">['+(i+1)+']</span>';
+            const url = s.url ? '<a href="'+s.url+'" target="_blank">'+sub+s.url+'</a>' : '<div>'+sub+'(no link)</div>';
+            return url;
+          }).join('')
+        : '';
+    }catch(e){
+      loading.style.display = 'none';
+      card.style.display = 'block';
+      answerEl.innerHTML = '<span class="err">Something went wrong: '+e.message+'</span>';
+    }finally{
+      go.disabled = false;
+    }
+  }
+
+  go.onclick = function(){ ask(q.value); };
+  q.addEventListener('keydown', function(e){ if(e.key === 'Enter') ask(q.value); });
+  chips.addEventListener('click', function(e){
+    if(e.target.classList.contains('chip')){ q.value = e.target.textContent; ask(q.value); }
+  });
+</script>
+</body>
+</html>

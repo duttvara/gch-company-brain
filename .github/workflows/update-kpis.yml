@@ -1,0 +1,29 @@
+name: Update Business KPIs
+
+on:
+  schedule:
+    - cron: "0 7 * * *"      # daily at 07:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ingest-kpis:
+    runs-on: ubuntu-latest
+    env:
+      STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    defaults:
+      run:
+        working-directory: gch-brain-starter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ingest Stripe KPIs
+        run: python ingest_stripe.py

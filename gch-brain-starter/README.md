@@ -1,65 +1,45 @@
-# GCH Company Brain - Weekend 1 Starter
+# GCH Company Brain Ingestion
 
-Your first working slice of the company brain: scrape Reddit, understand it with OpenAI, store it in Supabase, and ask it questions with cited answers.
+This folder contains the ingestion and database setup scripts for GCH Company Brain.
 
+## Data Sources
+
+- `ingest.py`: Reddit consumer discussions
+- `ingest_research.py`: PubMed and OpenAlex research
+- `ingest_web.py`: competitor and EAP website content
+- `ingest_pdfs.py`: local PDF/EPUB reference material
+- `ingest_stripe.py`: Stripe business KPI snapshots
+- `supabase_setup.sql`: tables, pgvector setup, full-text search, and retrieval RPCs
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
 ```
-Reddit (Apify)  ->  embed (OpenAI)  ->  store (Supabase pgvector)  ->  ask (OpenAI)
+
+Add the required API keys to `.env`, then run `supabase_setup.sql` in the Supabase SQL Editor.
+
+## Common Commands
+
+```bash
+python ingest.py
+python ingest_research.py
+python ingest_web.py
+python ingest_stripe.py
 ```
 
-## What you need first
-- Your Supabase project (done)
-- An OpenAI API key: https://platform.openai.com/api-keys
-- Your Apify token: https://console.apify.com/account/integrations
-- Python 3.9 or newer installed
+Local book/reference ingestion is intentionally not scheduled because source files are excluded from the repository.
 
-## Setup (once)
+## CLI Testing
 
-1. Open a terminal in this folder.
+```bash
+python ask.py
+python ask_kpis.py
+```
 
-2. Install the libraries:
-   ```
-   pip install -r requirements.txt
-   ```
+## Notes
 
-3. Create your secrets file. Copy `.env.example` to `.env`, then open `.env`
-   and paste in your real keys.
-   ```
-   cp .env.example .env
-   ```
-
-4. In the Supabase SQL Editor, run the contents of `supabase_setup.sql`.
-   The only new piece is the `match_documents` function at the bottom, which
-   is what lets the brain search by meaning. The tables you already made.
-
-## Run it
-
-1. Fill the brain with Reddit data:
-   ```
-   python ingest.py
-   ```
-   You should see it save ~10 to 15 chunks.
-
-2. Ask it something:
-   ```
-   python ask.py
-   ```
-   Try: `what do people say about therapy being too expensive?`
-
-You will get an answer with `[1] [2]` citations and a list of source links.
-That is a real, working RAG brain. Everything else we build is widening this.
-
-## What each file does
-- `ingest.py` - collects Reddit posts, embeds them, saves them (the background job)
-- `ask.py` - answers a question from what is saved (the live job)
-- `supabase_setup.sql` - the database setup, including the search function
-- `.env` - your private keys (never share or commit this)
-
-## Cost
-Tiny. The Reddit scrape is a few cents, OpenAI embeddings for 15 short posts is
-a fraction of a cent, and one question is well under a cent.
-
-## Next steps after this works
-1. Add a second source (PDFs from a Google Drive folder).
-2. Add the "numbers" path: pull Stripe data into the `kpi_snapshot` table.
-3. Add a router so number-questions and meaning-questions go different ways.
-4. Wrap it in the agent loop for multi-step questions.
+- `.env` is ignored by Git.
+- `pdfs/` is ignored by Git.
+- Use a restricted read-only Stripe key for KPI ingestion.

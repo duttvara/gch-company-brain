@@ -14,6 +14,7 @@ Run it with:   python ingest.py
 
 import os
 import json
+import time
 from dotenv import load_dotenv
 from apify_client import ApifyClient
 from openai import OpenAI
@@ -28,28 +29,55 @@ EMBED_MODEL = "text-embedding-3-small"
 JUDGE_MODEL = "gpt-4o-mini"   # cheap model just for the keep/skip decision
 
 SUBREDDITS = ["therapy", "mentalhealth", "askatherapist", "TalkTherapy"]
+MAX_POSTS_PER_SUBREDDIT = int(os.getenv("REDDIT_MAX_POSTS_PER_SUBREDDIT", "6"))
+MAX_COMMENTS_PER_POST = int(os.getenv("REDDIT_MAX_COMMENTS_PER_POST", "6"))
+SCRAPE_RETRIES = int(os.getenv("REDDIT_SCRAPE_RETRIES", "2"))
 
 JUNK_SUBREDDITS = {
     "amitheasshole", "aitah", "relationship_advice", "relationships", "tifu",
 }
 
 
-def scrape_reddit():
-    urls = [f"https://www.reddit.com/r/{s}/" for s in SUBREDDITS]
-    print(f"Pulling posts + comments from: {', '.join('r/' + s for s in SUBREDDITS)} ...")
+def scrape_subreddit(subreddit):
+    url = f"https://www.reddit.com/r/{subreddit}/"
     run_input = {
-        "urls": urls,
+        "urls": [url],
         "sort": "hot",               # active threads = real discussion
-        "maxPostsPerSource": 6,      # keep scheduled runs light and less rate-limit prone
+        "maxPostsPerSource": MAX_POSTS_PER_SUBREDDIT,
         "includeComments": True,     # the real insight lives in comments
-        "maxCommentsPerPost": 6,     # how MANY comments per post
+        "maxCommentsPerPost": MAX_COMMENTS_PER_POST,
         "commentDepth": 2,           # how DEEP into reply threads (not a comment count)
         "deduplicatePosts": True,
         "useResidentialProxy": True,
     }
-    run = apify.actor("automation-lab/reddit-scraper").call(run_input=run_input)
-    items = list(apify.dataset(dataset_id_from_run(run)).iterate_items())
-    print(f"  got {len(items)} raw items back")
+    last_error = None
+    for attempt in range(1, SCRAPE_RETRIES + 2):
+        try:
+            print(f"  scraping r/{subreddit} (attempt {attempt})...")
+            run = apify.actor("automation-lab/reddit-scraper").call(run_input=run_input)
+            dataset_id = dataset_id_from_run(run)
+            items = list(apify.dataset(dataset_id).iterate_items())
+            print(f"    got {len(items)} raw items from r/{subreddit}")
+            return items
+        except Exception as e:
+            last_error = e
+            wait = 20 * attempt
+            print(f"    ! r/{subreddit} scrape failed: {e}")
+            if attempt <= SCRAPE_RETRIES:
+                print(f"    retrying r/{subreddit} in {wait}s...")
+                time.sleep(wait)
+
+    print(f"    skipped r/{subreddit} after retries: {last_error}")
+    return []
+
+
+def scrape_reddit():
+    print(f"Pulling posts + comments from: {', '.join('r/' + s for s in SUBREDDITS)} ...")
+    items = []
+    for subreddit in SUBREDDITS:
+        items.extend(scrape_subreddit(subreddit))
+        time.sleep(5)
+    print(f"  got {len(items)} total raw Reddit items")
     return items
 
 def dataset_id_from_run(run):

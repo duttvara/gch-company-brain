@@ -138,6 +138,9 @@ The repository includes workflows for:
 - Weekly company brain ingestion
 - Manual KPI ingestion
 
+The workflows are currently configured for manual runs while ingestion cadence is being validated.
+Re-enable `schedule` blocks only after manual runs are green.
+
 Before enabling scheduled workflows, configure repository Actions secrets:
 
 ```text

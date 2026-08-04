@@ -1,8 +1,8 @@
 name: Update the Company Brain
 
 on:
-  schedule:
-    - cron: "0 6 * * 1"      # every Monday at 06:00 UTC
+  # Run manually from GitHub Actions when you want to refresh the brain.
+  # Re-enable the schedule after the repo secrets and ingestion cadence are confirmed.
   workflow_dispatch: {}
 
 jobs:
@@ -27,6 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Ingest Reddit consumer voice
+        continue-on-error: true
         run: python ingest.py
 
       - name: Ingest research

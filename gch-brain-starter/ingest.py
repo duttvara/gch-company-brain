@@ -40,11 +40,12 @@ def scrape_reddit():
     run_input = {
         "urls": urls,
         "sort": "hot",               # active threads = real discussion
-        "maxPostsPerSource": 12,     # posts per subreddit
+        "maxPostsPerSource": 6,      # keep scheduled runs light and less rate-limit prone
         "includeComments": True,     # the real insight lives in comments
-        "maxCommentsPerPost": 12,    # how MANY comments per post
+        "maxCommentsPerPost": 6,     # how MANY comments per post
         "commentDepth": 2,           # how DEEP into reply threads (not a comment count)
         "deduplicatePosts": True,
+        "useResidentialProxy": True,
     }
     run = apify.actor("automation-lab/reddit-scraper").call(run_input=run_input)
     items = list(apify.dataset(dataset_id_from_run(run)).iterate_items())

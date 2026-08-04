@@ -11,6 +11,18 @@ function nowMs() {
   return Date.now();
 }
 
+function isOpenAIQuotaError(error) {
+  const message = String(error && error.message ? error.message : error).toLowerCase();
+  const code = String(error && error.code ? error.code : "").toLowerCase();
+  return (
+    code === "credit_balance_exhausted" ||
+    code === "insufficient_quota" ||
+    message.includes("credit_balance_exhausted") ||
+    message.includes("insufficient_quota") ||
+    message.includes("no credits remaining")
+  );
+}
+
 export async function retrieveEvidence({ openai, supabase, query, source }) {
   const mode = SOURCE_TO_MODE[source] || SOURCE_TO_MODE.both;
   const config = MODE_RETRIEVAL_CONFIG[mode];
@@ -24,6 +36,11 @@ export async function retrieveEvidence({ openai, supabase, query, source }) {
   const vectorPromise = embedQuery(openai, query)
     .then((vector) => runVectorSearch(supabase, vector, config, filterSources))
     .catch((error) => {
+      if (isOpenAIQuotaError(error)) {
+        throw new Error(
+          "OpenAI credits are exhausted, so the app cannot create the search embedding. Add credits in OpenAI billing, then try again."
+        );
+      }
       console.error("Vector search failed:", error.message);
       return [];
     })
